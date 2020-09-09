@@ -13,23 +13,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../contexts/auth';
 
-import FormGroup from '../../components/FormGroup';
+import InputTitle from '../../components/InputTitle';
+import CustomInput from '../../components/CustomInput';
+import CustomButton from '../../components/CustomButton';
 
 import styles from './styles';
 
 const SignUp: React.FC = () => {
+  const [disabled, setDisabled] = useState(true);
+  const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const { stepSignUp } = useAuth();
 
   const [offsetTitle] = useState(new Animated.ValueXY({ x: -200, y: -100 }));
+  const [offsetInputs] = useState(new Animated.ValueXY({ x: -200, y: 100 }));
   const [opacityTitle] = useState(new Animated.Value(100));
+  const [opacityInputs] = useState(new Animated.Value(100));
 
   useEffect(() => {
-    Animated.spring(offsetTitle.y, {
-      toValue: 0,
-      speed: 1,
-      bounciness: 10,
-      useNativeDriver: true
-    }).start();
+    executeAnimatedParallel();
 
     Keyboard.addListener("keyboardDidShow", _keyboardDidShow);
     Keyboard.addListener("keyboardDidHide", _keyboardDidHide);
@@ -41,10 +44,32 @@ const SignUp: React.FC = () => {
     };
   }, []);
 
+  function executeAnimatedParallel() {
+    Animated.parallel([
+      Animated.spring(offsetInputs.y, {
+        toValue: 0,
+        speed: 1,
+        bounciness: 10,
+        useNativeDriver: true
+      }),
+      Animated.timing(opacityInputs, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true
+      }),
+      Animated.spring(offsetTitle.y, {
+        toValue: 0,
+        speed: 1,
+        bounciness: 10,
+        useNativeDriver: true
+      })
+    ]).start();
+  }
+
   function handleFocusTextInput() {
     Animated.timing(opacityTitle, {
       toValue: 0,
-      duration: 200,
+      duration: 100,
       useNativeDriver: true
     }).start();
   }
@@ -68,6 +93,18 @@ const SignUp: React.FC = () => {
   const _keyboardDidHide = () => {
     handleEndFocus();
   };
+
+  function handleButton() {
+    if (name.length > 0 && lastName.length > 0) {
+      setDisabled(false);
+    } else {
+      setDisabled(true);
+    }
+  }
+
+  useEffect(() => {
+    handleButton();
+  }, [name, lastName]);
 
   return (
     <>
@@ -94,27 +131,30 @@ const SignUp: React.FC = () => {
               </Animated.View>
             </TouchableWithoutFeedback>
 
-            {stepSignUp == 0 ? (
-              <FormGroup
-                title="01. Quem é você?"
-                placeholderFirstInput="Nome"
-                placeholderSecondInput="Sobrenome"
-                textButton="Próximo"
-                firstInputType="name"
-                secondInputTextContentType="name"
-                goTo="SignUpEmail"
+            <Animated.View style={{
+              opacity: opacityInputs,
+              transform: [{ translateY: offsetInputs.y }]
+            }}>
+              <InputTitle title="01. Quem é você?" />
+              <CustomInput
+                top={true}
+                password={false}
+                placeholder="Nome"
+                value={name}
+                setValue={setName}
               />
-            ) : (
-                <FormGroup
-                  title="02. E-mail e senha"
-                  placeholderFirstInput="E-mail"
-                  placeholderSecondInput="Senha"
-                  textButton="Concluir cadastro"
-                  firstInputType="email"
-                  secondInputTextContentType="password"
-                  goTo="SignUpEmail"
-                />
-              )}
+              <CustomInput
+                top={false}
+                password={false}
+                placeholder="Sobrenome"
+                value={lastName}
+                setValue={setLastName}
+              />
+              <CustomButton
+                text="Próximo"
+                disabled={disabled}
+              />
+            </Animated.View>
           </SafeAreaView>
         </ScrollView>
       </KeyboardAvoidingView>
